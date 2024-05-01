@@ -19,36 +19,34 @@ door2_data = {"lock_status": False, "magnet_status": False, "ir_sensor_status": 
 
 def open_door(data):
     command = 0x02  #mmmmmmmmmmmmmmmmmmm
-    data_size = 3  #mmmmmmmmmmmmmmmmmmmmmmmm
-    data = [command, data]  #mmmmmmmmmmmmmmmmmmmmm
+    data_size = 1  #mmmmmmmmmmmmmmmmmmmmmmmm
+    data = [data_size, data]  #mmmmmmmmmmmmmmmmmmmmm
     slave_address = 21  #mmmmmmmmmmmmmmmmmmmmmmmmmmmmm
     bus = smbus.SMBus(1)  #mmmmmmmmmmmmmmmmmmmmmmmmmmm
     print("Sending to address:", slave_address)
-    bus.write_i2c_block_data(slave_address, 0, data) #mmmmmmmmmmmmmmmmmmmmmmmm
+    bus.write_i2c_block_data(slave_address, command, data) #mmmmmmmmmmmmmmmmmmmmmmmm
 
 def reboot_slave():
     command = 0x09  #mmmmmmmmmmmmmmmmmmm
-    data_size = 3  #mmmmmmmmmmmmmmmmmmmmmmmm
-    data = [command, 0]  #mmmmmmmmmmmmmmmmmmmmm
+    data_size = 1  #mmmmmmmmmmmmmmmmmmmmmmmm
+    data = [data_size, 0]  #mmmmmmmmmmmmmmmmmmmmm
     slave_address = 21  #mmmmmmmmmmmmmmmmmmmmmmmmmmmmm
     bus = smbus.SMBus(1)  #mmmmmmmmmmmmmmmmmmmmmmmmmmm
     print("Sending to address:", slave_address)
-    bus.write_i2c_block_data(slave_address, 0, data) #mmmmmmmmmmmmmmmmmmmmmmmm
+    bus.write_i2c_block_data(slave_address, command, data) #mmmmmmmmmmmmmmmmmmmmmmmm
 
 def send_data_to_slave():
     command = 0x08  #mmmmmmmmmmmmmmmmmmm
-    data_size = 3  #mmmmmmmmmmmmmmmmmmmmmmmm
-    data = [command, 1, 2]  #mmmmmmmmmmmmmmmmmmmmm
+    data_size = 2  #mmmmmmmmmmmmmmmmmmmmmmmm
+    data = [data_size, 1, 2]  #mmmmmmmmmmmmmmmmmmmmm
     slave_address = 21  #mmmmmmmmmmmmmmmmmmmmmmmmmmmmm
     bus = smbus.SMBus(1)  #mmmmmmmmmmmmmmmmmmmmmmmmmmm
     print("Sending to address:", slave_address)
-    bus.write_i2c_block_data(slave_address, 0, data) #mmmmmmmmmmmmmmmmmmmmmmmm
+    bus.write_i2c_block_data(slave_address, command, data) #mmmmmmmmmmmmmmmmmmmmmmmm
 
-send_data_to_slave
+send_data_to_slave()
 
-heartbeat_thread = threading.Thread(target=heartbeat_loop)
-heartbeat_thread.daemon = True  
-heartbeat_thread.start()
+
 
 def heartbeat_loop():
     while True:
@@ -60,12 +58,25 @@ def heartbeat_loop():
 
         # Sleep for 1 second
         time.sleep(1)
+
+#heartbeat_thread = threading.Thread(target=heartbeat_loop)
+#heartbeat_thread.daemon = True  
+#heartbeat_thread.start()
+
         
 def request_response_from_slave():
-    received_data = bus.read_i2c_block_data(SLAVE_ADDRESS, 0, 11)
+    command = 0x02  #mmmmmmmmmmmmmmmmmmm
+    data_size = 1  #mmmmmmmmmmmmmmmmmmmmmmmm
+    data = [data_size, 11]  #mmmmmmmmmmmmmmmmmmmmm
+    slave_address = 21  #mmmmmmmmmmmmmmmmmmmmmmmmmmmmm
+    bus = smbus.SMBus(1)  #mmmmmmmmmmmmmmmmmmmmmmmmmmm
+    slave_address = 21  #mmmmmmmmmmmmmmmmmmmmmmmmmmmmm
+    received_data = bus.read_i2c_block_data(slave_address, 11)
     print("Received data:")
     print(received_data)
     interpret_status_bytes(received_data)
+    
+request_response_from_slave()
 
 def interpret_status_bytes(status_bytes):
     global door1_data, door2_data
@@ -205,12 +216,12 @@ def check_code(code):
     def open_door_admin():
         data = int(radioBoxes.value)
         command = 0x02  #mmmmmmmmmmmmmmmmmmm
-        data_size = 3  #mmmmmmmmmmmmmmmmmmmmmmmm
-        data = [command, data]  #mmmmmmmmmmmmmmmmmmmmm
+        data_size = 1  #mmmmmmmmmmmmmmmmmmmmmmmm
+        data = [data_size, data]  #mmmmmmmmmmmmmmmmmmmmm
         slave_address = 21  #mmmmmmmmmmmmmmmmmmmmmmmmmmmmm
         bus = smbus.SMBus(1)  #mmmmmmmmmmmmmmmmmmmmmmmmmmm
         print("Sending to address:", slave_address)
-        bus.write_i2c_block_data(slave_address, 0, data) #mmmmmmmmmmmmmmmmmmmmmmmm
+        bus.write_i2c_block_data(slave_address, command, data) #mmmmmmmmmmmmmmmmmmmmmmmm
        
     #Generate a random 6-digit code
     def generate_code():
