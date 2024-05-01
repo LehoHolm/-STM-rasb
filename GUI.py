@@ -50,6 +50,17 @@ heartbeat_thread = threading.Thread(target=heartbeat_loop)
 heartbeat_thread.daemon = True  
 heartbeat_thread.start()
 
+def heartbeat_loop():
+    while True:
+        # Perform any necessary tasks here
+        print("Heartbeat")
+
+        # Request response from the slave
+        request_response_from_slave()
+
+        # Sleep for 1 second
+        time.sleep(1)
+        
 def request_response_from_slave():
     received_data = bus.read_i2c_block_data(SLAVE_ADDRESS, 0, 11)
     print("Received data:")
