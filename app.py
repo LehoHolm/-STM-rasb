@@ -11,42 +11,38 @@ app = Flask(__name__)
 def home():
     return render_template('index.html')
 
-# Uste info tehtud globaalseks muutujaks, ehk kui pärast interpret_status_bytes() muudetakse kastide staatust muutub siin automaatselt
-door1_data = {"lock_status": False, "magnet_status": False, "ir_sensor_status": False}
-door2_data = {"lock_status": False, "magnet_status": False, "ir_sensor_status": False}
-
 # Annab STM-ile teada mis uksed tema peab lahti tegema. data_size on mitu ust tehakse lahti 
 def open_door(data):
-    command = 0x02  
-    data_size = 3  
-    data = [command, data] 
-    slave_address = 21 
+    command = 0x02 
+    data_size = 1 
+    data = [data_size, data] 
+    slave_address = 21  
     bus = smbus.SMBus(1)  
     print("Sending to address:", slave_address)
-    bus.write_i2c_block_data(slave_address, 0, data) 
+    bus.write_i2c_block_data(slave_address, command, data) 
 
 # Restardib STM ja tema uste haldamis info. data_size on 1 ja kui sellele järngneb 0 annab teada, et tuleb restartida
 def reboot_slave():
     command = 0x09  
-    data_size = 3  
-    data = [command, 0] 
+    data_size = 1  
+    data = [data_size, 0]  
     slave_address = 21  
-    bus = smbus.SMBus(1) 
+    bus = smbus.SMBus(1)  
     print("Sending to address:", slave_address)
-    bus.write_i2c_block_data(slave_address, 0, data) 
+    bus.write_i2c_block_data(slave_address, command, data)
 
 # Annab STM-ile teada mis uksed tema peab haldama. data_size on mitu ust hallatakse 
 def send_data_to_slave():
     command = 0x08  
-    data_size = 3  
-    data = [command, 1, 2]   #hetkel on pandud 1 ja 2, kuidagi peaks tegema lihtsasti skaleeritavaks 
+    data_size = 2 
+    data = [data_size, 1, 2] #hetkel on pandud 1 ja 2, kuidagi peaks tegema lihtsasti skaleeritavaks 
     slave_address = 21  
-    bus = smbus.SMBus(1) 
+    bus = smbus.SMBus(1)  
     print("Sending to address:", slave_address)
-    bus.write_i2c_block_data(slave_address, 0, data)
+    bus.write_i2c_block_data(slave_address, command, data) 
 
 # alguses ütleme, et halda 2 ust id-ga 1 ja 2
-send_data_to_slave
+send_data_to_slave()
 
 # iga sekundi tagant küsime infot
 def heartbeat_loop():
@@ -65,13 +61,19 @@ heartbeat_thread = threading.Thread(target=heartbeat_loop)
 heartbeat_thread.daemon = True  
 heartbeat_thread.start()
 
-# See hetkel ei tööta, aga siin küsitakse kappide staatust. Kutsutake ka interpret_status_bytes()
+# See hetkel ei tööta, aga siin küsitakse kappide staatust. Kutsutake ka interpret_status_bytes() 
 def request_response_from_slave():
-    received_data = bus.read_i2c_block_data(SLAVE_ADDRESS, 0, 11)
+    command = 0x02  
+    data_size = 1  
+    data = [data_size, 11]  
+    slave_address = 21  
+    bus = smbus.SMBus(1)  
+    slave_address = 21  
+    received_data = bus.read_i2c_block_data(slave_address, 11)
     print("Received data:")
     print(received_data)
     interpret_status_bytes(received_data)
-
+    
 # Debugimiseks
 # request_response_from_slave()
 
@@ -99,26 +101,10 @@ def interpret_status_bytes(status_bytes):
         else:
             print(f"Unknown door ID: {door_id}")
 
-        i += 2  # mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm
+        i += 2  
 
     print("Door 1 data:", door1_data)
     print("Door 2 data:", door2_data)
-
-#Vana kood kus open_door_admin on ka muudetud
-#Appends pressed button numbers to the textbox field
-
-#Removes the code once it has been used
-def remove_code_from_file(code):
-    filename = "codes.txt"
-    temp_filename = "temp_codes.txt"  # Temporary file to store modified contents
-
-    with open(filename, "r") as input_file, open(temp_filename, "w") as output_file:
-        for line in input_file:
-            if not line.startswith(code + ":"):  # Skip the line with the code to be removed
-                output_file.write(line)
-
-    # Rename temporary file to original filename to replace it
-    os.replace(temp_filename, filename)
 
 #Sends the data in the textbox
 #Oleks vaja teha skaleeritavaks
