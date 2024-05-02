@@ -7,69 +7,80 @@ import random
 
 app = Flask(__name__)
 
-
 @app.route('/')
 def home():
     return render_template('index.html')
 
-
-
-
-
-
-
-
+# Uste info tehtud globaalseks muutujaks, ehk kui pärast interpret_status_bytes() muudetakse kastide staatust muutub siin automaatselt
 door1_data = {"lock_status": False, "magnet_status": False, "ir_sensor_status": False}
 door2_data = {"lock_status": False, "magnet_status": False, "ir_sensor_status": False}
 
-
-
-
+# Annab STM-ile teada mis uksed tema peab lahti tegema. data_size on mitu ust tehakse lahti 
 def open_door(data):
-    command = 0x02  #mmmmmmmmmmmmmmmmmmm
-    data_size = 3  #mmmmmmmmmmmmmmmmmmmmmmmm
-    data = [command, data]  #mmmmmmmmmmmmmmmmmmmmm
-    slave_address = 21  #mmmmmmmmmmmmmmmmmmmmmmmmmmmmm
-    bus = smbus.SMBus(1)  #mmmmmmmmmmmmmmmmmmmmmmmmmmm
+    command = 0x02  
+    data_size = 3  
+    data = [command, data] 
+    slave_address = 21 
+    bus = smbus.SMBus(1)  
     print("Sending to address:", slave_address)
-    bus.write_i2c_block_data(slave_address, 0, data) #mmmmmmmmmmmmmmmmmmmmmmmm
+    bus.write_i2c_block_data(slave_address, 0, data) 
 
+# Restardib STM ja tema uste haldamis info. data_size on 1 ja kui sellele järngneb 0 annab teada, et tuleb restartida
 def reboot_slave():
-    command = 0x09  #mmmmmmmmmmmmmmmmmmm
-    data_size = 3  #mmmmmmmmmmmmmmmmmmmmmmmm
-    data = [command, 0]  #mmmmmmmmmmmmmmmmmmmmm
-    slave_address = 21  #mmmmmmmmmmmmmmmmmmmmmmmmmmmmm
-    bus = smbus.SMBus(1)  #mmmmmmmmmmmmmmmmmmmmmmmmmmm
+    command = 0x09  
+    data_size = 3  
+    data = [command, 0] 
+    slave_address = 21  
+    bus = smbus.SMBus(1) 
     print("Sending to address:", slave_address)
-    bus.write_i2c_block_data(slave_address, 0, data) #mmmmmmmmmmmmmmmmmmmmmmmm
+    bus.write_i2c_block_data(slave_address, 0, data) 
 
+# Annab STM-ile teada mis uksed tema peab haldama. data_size on mitu ust hallatakse 
 def send_data_to_slave():
-    command = 0x08  #mmmmmmmmmmmmmmmmmmm
-    data_size = 3  #mmmmmmmmmmmmmmmmmmmmmmmm
-    data = [command, 1, 2]  #mmmmmmmmmmmmmmmmmmmmm
-    slave_address = 21  #mmmmmmmmmmmmmmmmmmmmmmmmmmmmm
-    bus = smbus.SMBus(1)  #mmmmmmmmmmmmmmmmmmmmmmmmmmm
+    command = 0x08  
+    data_size = 3  
+    data = [command, 1, 2]   #hetkel on pandud 1 ja 2, kuidagi peaks tegema lihtsasti skaleeritavaks 
+    slave_address = 21  
+    bus = smbus.SMBus(1) 
     print("Sending to address:", slave_address)
-    bus.write_i2c_block_data(slave_address, 0, data) #mmmmmmmmmmmmmmmmmmmmmmmm
+    bus.write_i2c_block_data(slave_address, 0, data)
 
+# alguses ütleme, et halda 2 ust id-ga 1 ja 2
 send_data_to_slave
 
+# iga sekundi tagant küsime infot
+def heartbeat_loop():
+    while True:
+        # Perform any necessary tasks here
+        print("Heartbeat")
+
+        # Request response from the slave
+        request_response_from_slave()
+
+        # Sleep for 1 second
+        time.sleep(1)
+
+# Heartbeat init
 heartbeat_thread = threading.Thread(target=heartbeat_loop)
 heartbeat_thread.daemon = True  
 heartbeat_thread.start()
 
-# Define the heartbeat loop function
-def heartbeat_loop():
-    while True:
-        request_response_from_slave()
-        time.sleep(1)
-
+# See hetkel ei tööta, aga siin küsitakse kappide staatust. Kutsutake ka interpret_status_bytes()
 def request_response_from_slave():
     received_data = bus.read_i2c_block_data(SLAVE_ADDRESS, 0, 11)
     print("Received data:")
     print(received_data)
     interpret_status_bytes(received_data)
 
+# Debugimiseks
+# request_response_from_slave()
+
+# Vastusaadud info tehakse arusaadavaks infoks ja muudetakse globaalseid muutujaid, ei ole testitud
+# Näide: 1 5 2 2
+# 1. byte door id
+# 2. byte status. näiteks kui lock on 1, magnet on 0 ja IR on 1 tuleb 101 mis on 5
+# 3. byte door id
+# 4. byte status. näiteks kui lock on 0, magnet on 1 ja IR on 0 tuleb 010 mis on 2
 def interpret_status_bytes(status_bytes):
     global door1_data, door2_data
     print("Door statuses:")
@@ -93,14 +104,8 @@ def interpret_status_bytes(status_bytes):
     print("Door 1 data:", door1_data)
     print("Door 2 data:", door2_data)
 
-
-
-
-
-
-
-
-
+#Vana kood kus open_door_admin on ka muudetud
+#Appends pressed button numbers to the textbox field
 
 #Removes the code once it has been used
 def remove_code_from_file(code):
@@ -115,13 +120,8 @@ def remove_code_from_file(code):
     # Rename temporary file to original filename to replace it
     os.replace(temp_filename, filename)
 
-
-
-# Call the condition() function to get error state and IR sensor state
-
-
-
-
+#Sends the data in the textbox
+#Oleks vaja teha skaleeritavaks
 @app.route('/process_data', methods=['POST'])
 def process_data():
     entered_code = request.form['code']
@@ -173,8 +173,6 @@ def process_data():
         return jsonify({'message': 'Wrong code'})
 
 
-
-
 @app.route('/generate_new_code', methods=['POST'])
 def generate_new_code():
     global used_codes
@@ -197,9 +195,6 @@ def generate_new_code():
        
     save_used_codes(random_code, selected_door)  # Save the code and its linked door
     return jsonify({'message': 'New code generated', 'code': random_code, 'door': selected_door})
-
-
-     
 
 
 @app.route('/open_door', methods=['POST'])
@@ -236,7 +231,7 @@ def open_door_route():
         return jsonify({'message': 'Door ' + str(door_number) + ' opened and closed successfully'})
 
 
-# Define a route to provide sensor data
+# Define a route to provide sensor data, seda pole GUI-s. See näitab leheküljel kas midagi on sees
 @app.route('/get_sensor_data')
 def get_sensor_data():
     # Access the global variables containing sensor data for door 1 and door 2
@@ -248,10 +243,6 @@ def get_sensor_data():
    
     # Return sensor data as JSON
     return jsonify({'ir_sensor_state_1': box1_ir_sensor_state, 'ir_sensor_state_2': box2_ir_sensor_state})
-
-
-# Other routes and functions remain unchanged  
-     
        
 
 # Load used codes from a file
