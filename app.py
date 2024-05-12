@@ -12,6 +12,11 @@ app = Flask(__name__)
 def home():
     return render_template('index.html')
 
+# Uste info tehtud globaalseks muutujaks, ehk kui pärast interpret_status_bytes() muudetakse kastide staatust muutub siin automaatselt
+door1_data = {"lock_status": False, "magnet_status": False, "ir_sensor_status": False}
+door2_data = {"lock_status": False, "magnet_status": False, "ir_sensor_status": False}
+
+
 # Annab STM-ile teada mis uksed tema peab lahti tegema. data_size on mitu ust tehakse lahti 
 def open_door(data):
     command = 0x02 
@@ -55,7 +60,10 @@ def heartbeat_loop():
         request_response_from_slave()
 
         # Sleep for 1 second
-        time.sleep(1)
+        time.sleep(5)
+
+def print_sensor(sensor):
+    print(sensor)
 
 # Heartbeat init
 heartbeat_thread = threading.Thread(target=heartbeat_loop)
@@ -70,7 +78,7 @@ def request_response_from_slave():
     slave_address = 21  
     bus = smbus.SMBus(1)  
     slave_address = 21  
-    received_data = bus.read_i2c_block_data(slave_address, 11)
+    received_data = bus.read_i2c_block_data(slave_address, 0, 11)
     print("Received data:")
     print(received_data)
     interpret_status_bytes(received_data)
@@ -88,22 +96,23 @@ def interpret_status_bytes(status_bytes):
     global door1_data, door2_data
     print("Door statuses:")
     i = 0
-    while i < len(status_bytes) - 1:  # Subtract 1 to ensure there's at least one complete pair
-        door_id = status_bytes[i]
-        door_status = status_bytes[i + 1]  # Assuming door status byte follows door ID byte
-        lock_status = bool(door_status & 0b00000001)
-        magnet_status = bool((door_status >> 1) & 0b00000001)
-        ir_sensor_status = bool((door_status >> 2) & 0b00000001)
+    while i < 4:  # Subtract 1 to ensure there's at least one complete pair
+        door_id = status_bytes[1+i]
+        door_status = status_bytes[2+i]  # Assuming door status byte follows door ID byte
+        lock_status = bool(door_status & 1)
+        magnet_status = bool(door_status & 2)
+        ir_sensor_status = bool(door_status  & 4)
+        
 
         if door_id == 1:
             door1_data = {"lock_status": lock_status, "magnet_status": magnet_status, "ir_sensor_status": ir_sensor_status}
+            door1_data["ir_sensor_status"] = ir_sensor_status
         elif door_id == 2:
             door2_data = {"lock_status": lock_status, "magnet_status": magnet_status, "ir_sensor_status": ir_sensor_status}
-        else:
-            print(f"Unknown door ID: {door_id}")
 
-        i += 2  
 
+        i += 2
+        
     print("Door 1 data:", door1_data)
     print("Door 2 data:", door2_data)
 
@@ -188,34 +197,7 @@ def generate_new_code():
 def open_door_route():
     door_number = int(request.form['door_number'])
     open_door(door_number)
-    time.sleep(1)  # Add a delay to allow the door to open and close
-   
-    # Retrieve error state and IR sensor state for the specified door
-    box1_data, box2_data = condition()
-   
-    # Process the retrieved data for the specified door
-    if door_number == 1:
-        error_state, _ = box1_data
-    else:
-        error_state, _ = box2_data
-   
-    if error_state == 1:
-        return jsonify({'message': 'Door ' + str(door_number) + ' did not open'})
-   
-    time.sleep(10)
-    # Retrieve error state again after waiting for the door to close
-    box1_data, box2_data = condition()
-   
-    # Process the retrieved data for the specified door again
-    if door_number == 1:
-        error_state, _ = box1_data
-    else:
-        error_state, _ = box2_data
-   
-    if error_state == 2:
-        return jsonify({'message': 'Door ' + str(door_number) + ' did not close again'})
-    elif error_state == 0:
-        return jsonify({'message': 'Door ' + str(door_number) + ' opened and closed successfully'})
+
 
 
 # Define a route to provide sensor data, seda pole GUI-s. See näitab leheküljel kas midagi on sees
@@ -225,9 +207,8 @@ def get_sensor_data():
     global door1_data, door2_data
     
     # Extract IR sensor states from the global variables
-    box1_ir_sensor_state = door1_data.get("ir_sensor_status", None)
-    box2_ir_sensor_state = door2_data.get("ir_sensor_status", None)
-   
+    box1_ir_sensor_state = door1_data["ir_sensor_status"]
+    box2_ir_sensor_state = door2_data["ir_sensor_status"]
     # Return sensor data as JSON
     return jsonify({'ir_sensor_state_1': box1_ir_sensor_state, 'ir_sensor_state_2': box2_ir_sensor_state})
        
@@ -270,8 +251,6 @@ def view_codes():
         return 'Error: codes.txt not found', 404
 
 
-
-   
 used_codes = set()
 
 code_timestamps = {}
@@ -286,4 +265,4 @@ bus = smbus.SMBus(DEVICE_BUS)
 data = 1
 
 if __name__ == '__main__':
-    app.run(host='172.20.10.3', port=5000, debug=True)
+    app.run(host='100.100.101.135', port=5000, debug=True)
