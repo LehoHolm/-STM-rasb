@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NUTIKAPP</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        #center_box {
+            text-align: center;
+        }
+        .box {
+            font-size: 15px;
+            width: 100px;
+            text-align: center;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        #box1 {
+            background-color: #ff0000; /* Red color indicates occupied */
+        }
+
+        #box2 {
+            background-color: #00ff00; /* Green color indicates occupied */
+        }
+        button {
+            width: 56px;
+            height: 50px;
+            font-size: 15px;
+            margin: 5px;
+        }
+        img {
+            margin-top: 20px;
+            max-width: 40%;
+        }
+        #message_box {
+            display: none;
+            position: fixed;
+            top: 5%;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 20px;
+            background-color: #fff;
+            border: 2px solid #f00;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            z-index: 999;
+        }
+        #admin_panel {
+            display: none;
+            margin-top: 80px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Message Box -->
+    <div id="message_box"></div>
+
+    <div id="center_box">
+        <div id="box1" class="box">Box 1</div>
+        <div id="box2" class="box">Box 2</div>
+        <h2>SISESTA KOOD</h2>
+
+        <form id="code_form" action="/process_data" method="POST">
+            <input type="text" id="text_box" name="code" readonly>
+            <br><br>
+            <button type="button" onclick="inputToTextbox('1')">1</button>
+            <button type="button" onclick="inputToTextbox('2')">2</button>
+            <button type="button" onclick="inputToTextbox('3')">3</button>
+            <br>
+            <button type="button" onclick="inputToTextbox('4')">4</button>
+            <button type="button" onclick="inputToTextbox('5')">5</button>
+            <button type="button" onclick="inputToTextbox('6')">6</button>
+            <br>
+            <button type="button" onclick="inputToTextbox('7')">7</button>
+            <button type="button" onclick="inputToTextbox('8')">8</button>
+            <button type="button" onclick="inputToTextbox('9')">9</button>
+            <br>
+            <button type="button" onclick="clearTextbox()">DEL</button>
+            <button type="button" onclick="inputToTextbox('0')">0</button>
+            <button type="submit">ENT</button>
+        </form>
+        <br><br>
+        <img src="https://www.lapikud.ee/assets/logo.svg" alt="Logo">
+    </div>
+
+    <!-- Admin Panel -->
+    <div id="admin_panel">
+        <h3>Admin Panel</h3>
+        <form id="admin_form" action="/admin_panel" method="POST">
+            <br><br>
+            <label for="action">Action:</label>
+            <select id="action" name="action">
+                <option value="generate_code">Generate Code</option>
+                <option value="open_door">Open Door</option>
+                <option value="view_codes">View Codes</option>
+            </select>
+            <br><br>
+            <label for="door_number">Door Number:</label>
+            <select id="door_number" name="door_number">
+                <option value="1">1</option>
+                <option value="2">2</option>
+            </select>
+            <br><br>
+            <button type="submit">OK</button>
+        </form>
+    </div>
+
+<script>
+    var enteredCode = "";
+
+    function inputToTextbox(value) {
+        enteredCode += value;
+        document.getElementById("text_box").value = enteredCode;
+    }
+
+    function clearTextbox() {
+        enteredCode = "";
+        document.getElementById("text_box").value = "";
+    }
+
+    // Add event listener to detect "Enter" key press
+    document.getElementById("text_box").addEventListener("keyup", function(event) {
+        if (event.key === "Enter") {
+            document.getElementById("code_form").submit(); // Submit the form when "Enter" is pressed
+        }
+    });
+
+    // Function to display message in message box
+    function showMessage(message) {
+        var messageBox = document.getElementById("message_box");
+        messageBox.textContent = message;
+        messageBox.style.display = "block";
+        setTimeout(function() {
+            messageBox.style.display = "none";
+        }, 4000); // Hide the message after 3 seconds, if you didnt see it get better reaction time bitch
+    }
+
+    // Function to update box colors based on IR sensor data
+    function updateBoxColor(boxNumber, irSensorValue) {
+        var boxElement = document.getElementById("box" + boxNumber);
+        if (irSensorValue === true) {
+            boxElement.style.backgroundColor = "#ff0000"; // Red color indicates occupied
+        } else {
+            boxElement.style.backgroundColor = "#00ffff"; // Green color indicates not occupied
+        }
+    }
+
+    function fetchAndDisplaySensorData() {
+        fetch('/get_sensor_data')
+        .then(response => response.json())
+        .then(data => {
+            updateBoxColor(1, data.ir_sensor_state_1);
+            updateBoxColor(2, data.ir_sensor_state_2);
+        })
+        .catch(error => console.error('Error:', error));
+    }
+
+    setInterval(fetchAndDisplaySensorData, 1000); // Update every second
+// Add an event listener to handle the "View Codes" button click
+document.getElementById("admin_form").addEventListener('submit', function(event) {
+    event.preventDefault();
+    var formData = new FormData(document.getElementById('admin_form'));
+    var adminAction = formData.get('action'); 
+    if (adminAction === "generate_code") {
+        // Your existing code for generating a new code
+    } else if (adminAction === "open_door") {
+        // Your existing code for opening the door
+    } else if (adminAction === "view_codes") {
+        // Fetch codes and display in a popup window
+        fetch('/view_codes')
+    .then(response => response.text())
+    .then(data => {
+        // Display codes in a popup window
+        var codesWindow = window.open("", "Codes", "width=400,height=400");
+        var codesArray = data.split('\n'); // Split data into separate lines
+        codesArray.forEach(code => {
+            codesWindow.document.write('<p style="font-size: 21px;">' + code + "</p>"); // Write each code with adjusted font size
+        });
+    })
+    .catch(error => console.error('Error:', error));
+
+    }
+});
+
+
+    // Fetch function to handle the response from Flask
+    document.getElementById("admin_form").addEventListener('submit', function(event) {
+    event.preventDefault();
+    var formData = new FormData(document.getElementById('admin_form'));
+    var adminAction = formData.get('action'); 
+    if (adminAction === "generate_code") {
+        var selectedDoor = formData.get('door_number'); // Get the selected door number
+
+        formData.append('selected_door', selectedDoor); // Append the selected door to the form data
+        // Generate a random code
+        fetch('/generate_new_code', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.message) {
+                showMessage(data.message + ": " + data.code + " (Door: " + data.door + ")"); // Show the generated code and door
+            } else {
+                // i went to take a shit and forgot what i was supposed to put here, still works tho
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    } else if (adminAction === "open_door") {
+        // Activate the admin panel
+        document.getElementById("admin_panel").style.display = "none"; // Hide the admin panel
+        // Open the door
+        fetch('/open_door', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.message) {
+                showMessage(data.message); // Show the message
+            } else {
+                // Handle other responses here
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+});
+    document.getElementById("code_form").addEventListener('submit', function(event) {
+        event.preventDefault();
+        var formData = new FormData(document.getElementById('code_form'));
+        var adminCode = formData.get('admin_code'); 
+        if (adminCode === "1337") {
+            var adminAction = formData.get('action'); 
+            if (adminAction === "generate_code" || adminAction === "open_door") {
+                // Activate the admin panel
+                document.getElementById("admin_panel").style.display = "block";
+            }
+        }
+        fetch('/process_data', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.message) {
+                showMessage(data.message);
+                if (data.show_admin_panel) {
+                    // Activate the admin panel
+                    document.getElementById("admin_panel").style.display = "block";
+                } else if (data.hide_admin_panel) {
+                    // Hide the admin panel
+                    document.getElementById("admin_panel").style.display = "none";
+                }
+            } else {
+                // idk man, JS sucks dick
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    });
+
+</script>
+
+
+</body>
+</html>
+</html>
