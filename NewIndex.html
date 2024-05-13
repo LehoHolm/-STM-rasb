@@ -15,7 +15,6 @@
         }
         #center_box {
             text-align: center;
-            position: relative; /* Ensure relative positioning for absolute positioning of admin panel */
 }
 
         .box {
@@ -203,6 +202,49 @@
             .catch(error => console.error('Error:', error));
         }
     });
+
+    // Fetch function to handle the response from Flask
+    document.getElementById("admin_form").addEventListener('submit', function(event) {
+    event.preventDefault();
+    var formData = new FormData(document.getElementById('admin_form'));
+    var adminAction = formData.get('action');
+    if (adminAction === "generate_code") {
+        var selectedDoor = formData.get('door_number'); // Get the selected door number
+
+        formData.append('selected_door', selectedDoor); // Append the selected door to the form data
+        // Generate a random code
+        fetch('/generate_new_code', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.message) {
+                showMessage(data.message + ": " + data.code + " (Door: " + data.door + ")"); // Show the generated code and door
+            } else {
+                // i went to take a shit and forgot what i was supposed to put here, still works tho
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    } else if (adminAction === "open_door") {
+        // Activate the admin panel
+        document.getElementById("admin_panel").style.display = "none"; // Hide the admin panel
+        // Open the door
+        fetch('/open_door', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.message) {
+                showMessage(data.message); // Show the message
+            } else {
+                // Handle other responses here
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+});
 
     // Fetch function to handle the response from Flask
     document.getElementById("code_form").addEventListener('submit', function(event) {
