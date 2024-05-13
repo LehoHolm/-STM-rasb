@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NUTIKAPP</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        #center_box {
+            text-align: center;
+            position: relative; /* Ensure relative positioning for absolute positioning of admin panel */
+}
+
+        .box {
+            font-size: 15px;
+            width: 80px;
+            text-align: center;
+            padding: 20px;
+            margin-bottom: 20px;
+            display: none; /* Initially hide the boxes */
+        }
+        #box1 {
+            background-color: #ff0000; /* Red color indicates occupied */
+        }
+
+        #box2 {
+            background-color: #00ff00; /* Green color indicates occupied */
+        }
+        button {
+            width: 56px;
+            height: 50px;
+            font-size: 15px;
+            margin: 5px;
+        }
+        img {
+            margin-top: 20px;
+            max-width: 40%;
+        }
+        #message_box {
+            display: none;
+            position: fixed;
+            top: 5%;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 20px;
+            background-color: #fff;
+            border: 2px solid #f00;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            z-index: 999;
+        }
+        #admin_panel {
+            display: none; /* Initially hide admin panel */
+            position: absolute;
+            top: 37%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 20px;
+            background-color: #ffffff;
+            border: 2px solid #000000;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+    </style>
+</head>
+<body>
+    <!-- Message Box -->
+    <div id="message_box"></div>
+
+    <div id="center_box">
+        <div id="box1" class="box">Box 1</div>
+        <div id="box2" class="box">Box 2</div>
+        <h2 id="code_heading">SISESTA KOOD</h2>
+
+
+        <form id="code_form" action="/process_data" method="POST">
+            <input type="text" id="text_box" name="code" readonly>
+            <br><br>
+            <div id="number_buttons">
+                <button type="button" onclick="inputToTextbox('1')">1</button>
+                <button type="button" onclick="inputToTextbox('2')">2</button>
+                <button type="button" onclick="inputToTextbox('3')">3</button>
+                <br>
+                <button type="button" onclick="inputToTextbox('4')">4</button>
+                <button type="button" onclick="inputToTextbox('5')">5</button>
+                <button type="button" onclick="inputToTextbox('6')">6</button>
+                <br>
+                <button type="button" onclick="inputToTextbox('7')">7</button>
+                <button type="button" onclick="inputToTextbox('8')">8</button>
+                <button type="button" onclick="inputToTextbox('9')">9</button>
+                <br>
+                <button type="button" onclick="clearTextbox()">DEL</button>
+                <button type="button" onclick="inputToTextbox('0')">0</button>
+                <button type="submit">ENT</button>
+            </div>
+        </form>
+        <br><br>
+        <img src="https://www.lapikud.ee/assets/logo.svg" alt="Logo">
+    </div>
+
+    <!-- Admin Panel -->
+    <div id="admin_panel">
+        <h3>Admin Panel</h3>
+        <form id="admin_form" action="/admin_panel" method="POST">
+            <br><br>
+            <label for="action">Action:</label>
+            <select id="action" name="action">
+                <option value="generate_code">Generate Code</option>
+                <option value="open_door">Open Door</option>
+                <option value="view_codes">View Codes</option>
+            </select>
+            <br><br>
+            <label for="door_number">Door Number:</label>
+            <select id="door_number" name="door_number">
+                <option value="1">1</option>
+                <option value="2">2</option>
+            </select>
+            <br><br>
+            <button type="submit">OK</button>
+        </form>
+    </div>
+
+<script>
+    var enteredCode = "";
+
+    function inputToTextbox(value) {
+        enteredCode += value;
+        document.getElementById("text_box").value = enteredCode;
+    }
+
+    function clearTextbox() {
+        enteredCode = "";
+        document.getElementById("text_box").value = "";
+    }
+
+    // Add event listener to detect "Enter" key press
+    document.getElementById("text_box").addEventListener("keyup", function(event) {
+        if (event.key === "Enter") {
+            document.getElementById("code_form").submit(); // Submit the form when "Enter" is pressed
+        }
+    });
+
+    // Function to display message in message box
+    function showMessage(message) {
+        var messageBox = document.getElementById("message_box");
+        messageBox.textContent = message;
+        messageBox.style.display = "block";
+        setTimeout(function() {
+            messageBox.style.display = "none";
+        }, 4000); // Hide the message after 3 seconds, if you didnt see it get better reaction time bitch
+    }
+
+    // Function to update box colors based on IR sensor data
+    function updateBoxColor(boxNumber, irSensorValue) {
+        var boxElement = document.getElementById("box" + boxNumber);
+        if (irSensorValue === true) {
+            boxElement.style.backgroundColor = "#ff0000"; // Red color indicates occupied
+        } else {
+            boxElement.style.backgroundColor = "#00ff00"; // Green color indicates not occupied
+        }
+    }
+
+    function fetchAndDisplaySensorData() {
+        fetch('/get_sensor_data')
+        .then(response => response.json())
+        .then(data => {
+            updateBoxColor(1, data.ir_sensor_state_1);
+            updateBoxColor(2, data.ir_sensor_state_2);
+        })
+        .catch(error => console.error('Error:', error));
+    }
+
+    setInterval(fetchAndDisplaySensorData, 1000); // Update every second
+
+    // Add an event listener to handle the "View Codes" button click
+    document.getElementById("admin_form").addEventListener('submit', function(event) {
+        event.preventDefault();
+        var formData = new FormData(document.getElementById('admin_form'));
+        var adminAction = formData.get('action'); 
+        if (adminAction === "generate_code") {
+            // Your existing code for generating a new code
+        } else if (adminAction === "open_door") {
+            // Your existing code for opening the door
+        } else if (adminAction === "view_codes") {
+            // Fetch codes and display in a popup window
+            fetch('/view_codes')
+            .then(response => response.text())
+            .then(data => {
+                // Display codes in a popup window
+                var codesWindow = window.open("", "Codes", "width=400,height=400");
+                var codesArray = data.split('\n'); // Split data into separate lines
+                codesArray.forEach(code => {
+                    codesWindow.document.write('<p style="font-size: 21px;">' + code + "</p>"); // Write each code with adjusted font size
+                });
+            })
+            .catch(error => console.error('Error:', error));
+        }
+    });
+
+    // Fetch function to handle the response from Flask
+    document.getElementById("code_form").addEventListener('submit', function(event) {
+        event.preventDefault();
+        var formData = new FormData(document.getElementById('code_form'));
+        var adminCode = formData.get('code'); 
+        if (adminCode === "1337") {
+            document.getElementById("number_buttons").style.display = "none"; // Hide number buttons
+            document.getElementById("code_form").style.display = "none"; // Hide textbox buttons
+            document.getElementById("code_heading").style.display = "none"; // Hide the "SISESTA KOOD" heading
+            document.getElementById("box1").style.display = "block"; // Show box colors
+            document.getElementById("box2").style.display = "block";
+        }
+        fetch('/process_data', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.message) {
+                showMessage(data.message);
+                if (data.show_admin_panel) {
+                    // Activate the admin panel
+                    document.getElementById("admin_panel").style.display = "block";
+                } else if (data.hide_admin_panel) {
+                    // Hide the admin panel
+                    document.getElementById("admin_panel").style.display = "none";
+                }
+            } else {
+                // idk man, JS sucks dick
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    });
+
+</script>
+</body>
+</html>
