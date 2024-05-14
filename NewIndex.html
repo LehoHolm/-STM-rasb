@@ -228,7 +228,6 @@
         .catch(error => console.error('Error:', error));
     } else if (adminAction === "open_door") {
         // Activate the admin panel
-        document.getElementById("admin_panel").style.display = "none"; // Hide the admin panel
         // Open the door
         fetch('/open_door', {
             method: 'POST',
