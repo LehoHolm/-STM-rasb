@@ -222,7 +222,6 @@
             if (data.message) {
                 showMessage(data.message + ": " + data.code + " (Door: " + data.door + ")"); // Show the generated code and door
             } else {
-                // i went to take a shit and forgot what i was supposed to put here, still works tho
             }
         })
         .catch(error => console.error('Error:', error));
@@ -254,6 +253,7 @@
             document.getElementById("number_buttons").style.display = "none"; // Hide number buttons
             document.getElementById("code_form").style.display = "none"; // Hide textbox buttons
             document.getElementById("code_heading").style.display = "none"; // Hide the "SISESTA KOOD" heading
+            document.getElementById("admin_panel").style.display = "block"; // Hide the "SISESTA KOOD" heading
             document.getElementById("box1").style.display = "block"; // Show box colors
             document.getElementById("box2").style.display = "block";
         }
@@ -273,7 +273,6 @@
                     document.getElementById("admin_panel").style.display = "none";
                 }
             } else {
-                // idk man, JS sucks dick
             }
         })
         .catch(error => console.error('Error:', error));
